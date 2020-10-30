@@ -19,13 +19,14 @@ class DBController():
                     ''')
 
     query_select_chats = ('''
-                            SELECT chat_name
+                            SELECT *
                             FROM chat
                             ''')
 
     query_select_messages = ('''
-                            SELECT text_message,time,author,chat_id 
+                            SELECT text_message,time,author
                             FROM message
+                            WHERE chat_id = 
                              ''')
 
     def __init__(self):
@@ -49,9 +50,9 @@ class DBController():
             return list()
 
     @staticmethod
-    def get_messages(self):
+    def get_messages(self, id):
         try:
-            self.cur.execute(self.query_select_messages)
+            self.cur.execute(self.query_select_messages+str(id))
             messages = self.cur.fetchall()
             self.cur.close()
             self.cur = self.con.cursor()

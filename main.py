@@ -1,7 +1,7 @@
 from kivy.app import Builder
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivymd.app import MDApp
-from kivymd.uix.list import TwoLineListItem
+from kivymd.uix.list import ThreeLineListItem
 from kivymd.uix.button import Button as MDButton
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty
@@ -24,7 +24,7 @@ ScreenManager:
         MDToolbar:
             title: 'Anonymous chat'
             MDIconButton:
-                text: 'Hello'
+                icon: 'plus'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                 on_press: root.manager.current = 'Chat'
         ScrollView:
@@ -43,6 +43,7 @@ ScreenManager:
         orientation: 'vertical'
         MDToolbar:
             title: 'chat-name'
+            left_action_items: [['arrow-left', lambda x: app.root.ids.chat.go_back()]]
         ScrollView:      
             do_scroll_x: False
             do_scroll_y: True      
@@ -85,22 +86,31 @@ class MainWindow(Screen):
 
 
 class Chat(Screen):
-    list_items = list()
+    list_messages = list()
+
+    def on_pre_enter(self, *args):
+        messages = db.get_messages(db, 1)
+        for message in messages:
+            item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
+            self.parent.ids.chat.ids.messages.add_widget(item_mes)
+            self.list_messages.append(item_mes)
 
     def go_back(self):
         self.parent.current = 'MainWindow'
-        for i in range(len(self.list_items)):
-            self.parent.ids.chat.ids.messages.remove_widget(self.list_items[i])
-        self.list_items = list()
 
     def send_message(self):
         text_input = self.parent.ids.chat.ids.input.text
         if text_input == '':
             return
-        message = TwoLineListItem(text='Me', secondary_text=text_input)
-        self.parent.ids.chat.ids.messages.add_widget(message)
-        self.list_items.append(message)
+        item_mes = ThreeLineListItem(text=text_input, secondary_text='Me', tertiary_text='21.10.2010 10:00')
+        self.parent.ids.chat.ids.messages.add_widget(item_mes)
+        self.list_messages.append(item_mes)
         self.parent.ids.chat.ids.input.text = ''
+
+    def on_pre_leave(self, *args):
+        for i in range(len(self.list_messages)):
+            self.parent.ids.chat.ids.messages.remove_widget(self.list_messages[i])
+        self.list_messages = list()
 
 
 class ChatApp(MDApp):
@@ -114,7 +124,7 @@ class ChatApp(MDApp):
     def on_start(self):
         chats = db.get_chats(db)
         for chat in chats:
-            btn = MDButton(text=chat[0], on_press=lambda x: self.root.ids.main_window.go_to_chat(),
+            btn = MDButton(text=chat[1], on_press=lambda x: self.root.ids.main_window.go_to_chat(),
                            size_hint_y=None, height=160)
             self.root.ids.main_window.ids.chats.add_widget(btn)
 
