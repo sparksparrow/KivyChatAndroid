@@ -5,7 +5,7 @@ from kivymd.uix.list import TwoLineListItem
 from kivymd.uix.button import Button as MDButton
 from kivy.core.window import Window
 from kivy.properties import ObjectProperty
-import sqlite3
+from DB import DBController
 import asyncio
 import websockets
 
@@ -74,6 +74,8 @@ ScreenManager:
                 on_press: root.send_message()
 '''
 
+db = DBController()
+
 
 class MainWindow(Screen):
     def go_to_chat(self):
@@ -83,9 +85,13 @@ class MainWindow(Screen):
 
 
 class Chat(Screen):
+    list_items = list()
+
     def go_back(self):
         self.parent.current = 'MainWindow'
-        # self.parent.ids.chat.ids.messages.remove_widget()
+        for i in range(len(self.list_items)):
+            self.parent.ids.chat.ids.messages.remove_widget(self.list_items[i])
+        self.list_items = list()
 
     def send_message(self):
         text_input = self.parent.ids.chat.ids.input.text
@@ -93,6 +99,7 @@ class Chat(Screen):
             return
         message = TwoLineListItem(text='Me', secondary_text=text_input)
         self.parent.ids.chat.ids.messages.add_widget(message)
+        self.list_items.append(message)
         self.parent.ids.chat.ids.input.text = ''
 
 
@@ -105,10 +112,14 @@ class ChatApp(MDApp):
         return sm
 
     def on_start(self):
-        for i in range(6):
-            btn = MDButton(text='Name ' + str(i), on_press = lambda x: self.root.ids.main_window.go_to_chat(),
-                         size_hint_y=None, height=160)
+        chats = db.get_chats(db)
+        for chat in chats:
+            btn = MDButton(text=chat[0], on_press=lambda x: self.root.ids.main_window.go_to_chat(),
+                           size_hint_y=None, height=160)
             self.root.ids.main_window.ids.chats.add_widget(btn)
+
+    def on_stop(self):
+        db.close_con(db)
 
 
 if __name__ == '__main__':
