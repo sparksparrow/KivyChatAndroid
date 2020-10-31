@@ -19,6 +19,7 @@ ScreenManager:
         id: chat
 
 <MainWindow>:
+    name: 'MainWindow'
     BoxLayout:
         orientation: 'vertical'
         MDToolbar:
@@ -42,13 +43,14 @@ ScreenManager:
             padding: [15, 15, 50 ,15]
             orientation: 'vertical'
             MDTextField:
+                id: input_username
                 multiline: False
                 mode: 'line'
                 max_text_length: 30
-                required: True
-                hint_text: 'Name     '
+                hint_text: 'Username     '
                 icon_right: 'account'
                 mode: 'rectangle'
+                on_focus: root.save_username()
             Widget:
             
 <Chat>:
@@ -57,44 +59,46 @@ ScreenManager:
         orientation: 'vertical'
         MDToolbar:
             title: 'chat-name'
+            left_action_items: [['arrow-left', lambda x: app.root.ids.chat.go_back()]]
         ScrollView:      
             do_scroll_x: False
             do_scroll_y: True      
             MDList:
                 id: messages
-                padding: [0, 15, 15, 15]                
+                padding: [0, 15, 15, 15] 
         BoxLayout:
-            padding: 5, 0, 5, 0
+            padding: 10, 0, 5, 0
             size_hint: 1, 0.2
             orientation: 'horizontal'
             cols: 2
-            rows: 1
-            ScrollView:
-                do_scroll_x: False
-                do_scroll_y: True
-                MDTextField:
-                    id: input
-                    padding: [15, 15, 15 ,15]
-                    max_text_length: 5000
-                    hint_text: 'Макс. символов: 5000'
-                    multiline: True
-                    mode: 'fill'
-                    size_hint: 1, None
-                    height: '50dp'
-                    pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                    required: True
+            rows: 1            
+            MDTextField:
+                id: input
+                padding: [15, 15, 15 ,15]
+                max_text_length: 5000
+                mode: 'rectangle'
+                multiline: False
+                size_hint: 1, None
+                height: '50dp'
+                pos_hint: {'center_x': 0.5, 'center_y': 0.5}
+                on_text_validate: root.send_message()
             MDIconButton:
                 icon: 'arrow-up-circle'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                on_press: root.send_message()
+                on_press: root.send_message()               
 '''
 
 db = DBController()
 
 
 class MainWindow(Screen):
+    username = str()
+
     def go_to_chat(self):
         self.parent.current = 'Chat'
+
+    def save_username(self):
+        self.username = self.parent.ids.main_window.ids.input_username.text
     # def add_chat(self):
     # Добавление чата (создается новая кнопка в поле для перехода на новый Layout
 

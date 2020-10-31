@@ -1,7 +1,7 @@
 import sqlite3
 
 
-class DBController():
+class DBController:
     con = None
     cur = None
     path_db = './Chats_base.db'
