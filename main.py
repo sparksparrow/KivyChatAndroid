@@ -3,7 +3,8 @@ from kivy.uix.screenmanager import ScreenManager, Screen
 from kivymd.app import MDApp
 from kivymd.uix.list import ThreeLineListItem
 from kivymd.uix.button import Button as MDButton
-from kivy.core.window import Window
+from datetime import datetime
+from kivymd.uix.boxlayout import BoxLayout
 from kivy.properties import ObjectProperty
 from DB import DBController
 import asyncio
@@ -18,15 +19,14 @@ ScreenManager:
         id: chat
 
 <MainWindow>:
-    name: 'MainWindow'
     BoxLayout:
         orientation: 'vertical'
         MDToolbar:
             title: 'Anonymous chat'
             MDIconButton:
-                icon: 'plus'
+                icon: 'settings'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
-                on_press: root.manager.current = 'Chat'
+                on_press: nav_drawer.toggle_nav_drawer()
         ScrollView:
             do_scroll_x: False
             do_scroll_y: True
@@ -36,14 +36,27 @@ ScreenManager:
                 spacing: 8
                 padding: 15
                 size_hint_y: None
-
+    MDNavigationDrawer:
+        id: nav_drawer
+        BoxLayout:
+            padding: [15, 15, 50 ,15]
+            orientation: 'vertical'
+            MDTextField:
+                multiline: False
+                mode: 'line'
+                max_text_length: 30
+                required: True
+                hint_text: 'Name     '
+                icon_right: 'account'
+                mode: 'rectangle'
+            Widget:
+            
 <Chat>:
     name: 'Chat'
     BoxLayout:
         orientation: 'vertical'
         MDToolbar:
             title: 'chat-name'
-            left_action_items: [['arrow-left', lambda x: app.root.ids.chat.go_back()]]
         ScrollView:      
             do_scroll_x: False
             do_scroll_y: True      
@@ -62,8 +75,8 @@ ScreenManager:
                 MDTextField:
                     id: input
                     padding: [15, 15, 15 ,15]
-                    max_text_length: 200
-                    hint_text: 'Макс. символов: 200'
+                    max_text_length: 5000
+                    hint_text: 'Макс. символов: 5000'
                     multiline: True
                     mode: 'fill'
                     size_hint: 1, None
@@ -71,6 +84,7 @@ ScreenManager:
                     pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                     required: True
             MDIconButton:
+                icon: 'arrow-up-circle'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                 on_press: root.send_message()
 '''
@@ -102,7 +116,7 @@ class Chat(Screen):
         text_input = self.parent.ids.chat.ids.input.text
         if text_input == '':
             return
-        item_mes = ThreeLineListItem(text=text_input, secondary_text='Me', tertiary_text='21.10.2010 10:00')
+        item_mes = ThreeLineListItem(text=text_input, secondary_text='Me', tertiary_text=str(datetime.now())[:-7])
         self.parent.ids.chat.ids.messages.add_widget(item_mes)
         self.list_messages.append(item_mes)
         self.parent.ids.chat.ids.input.text = ''
