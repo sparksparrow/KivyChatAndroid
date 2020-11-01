@@ -1,10 +1,13 @@
 from kivy.app import Builder
-from kivy.uix.screenmanager import ScreenManager, Screen
+from kivymd.uix.screen import MDScreen
+from kivy.uix.screenmanager import ScreenManager
 from kivymd.app import MDApp
 from kivymd.uix.list import ThreeLineListItem
 from kivymd.uix.button import Button as MDButton
 from datetime import datetime
-from kivymd.uix.boxlayout import BoxLayout
+from kivy.uix.widget import Widget
+from kivymd.uix.button import MDFlatButton
+from kivymd.uix.dialog import MDDialog
 from kivy.properties import ObjectProperty
 from DB import DBController
 import asyncio
@@ -56,6 +59,7 @@ ScreenManager:
 <Chat>:
     name: 'Chat'
     BoxLayout:
+        id: box_chat
         orientation: 'vertical'
         MDToolbar:
             title: 'chat-name'
@@ -71,7 +75,9 @@ ScreenManager:
             size_hint: 1, 0.2
             orientation: 'horizontal'
             cols: 2
-            rows: 1            
+            rows: 1    
+            Widget:
+                size_hint: 0.04, 1          
             MDTextField:
                 id: input
                 padding: [15, 15, 15 ,15]
@@ -82,6 +88,9 @@ ScreenManager:
                 height: '50dp'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                 on_text_validate: root.send_message()
+                on_focus: root.ui_keyboard()
+            Widget:   
+                size_hint: 0.02, 1 
             MDIconButton:
                 icon: 'arrow-up-circle'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
@@ -91,51 +100,64 @@ ScreenManager:
 db = DBController()
 
 
-class MainWindow(Screen):
-    username = str()
+class ScreenController(ScreenManager):
+    username = str()  # Пока поле не было использовано, оно не определено
 
-    def go_to_chat(self):
-        self.parent.current = 'Chat'
+    class MainWindow(MDScreen):
+        dialog = None
 
-    def save_username(self):
-        self.username = self.parent.ids.main_window.ids.input_username.text
-    # def add_chat(self):
-    # Добавление чата (создается новая кнопка в поле для перехода на новый Layout
+        def go_to_chat(self):
+            if self.parent.ids.main_window.ids.input_username.text != '':
+                self.parent.transition.direction = 'left'
+                self.parent.current = 'Chat'
+            else:
+                if not self.dialog:
+                    self.dialog = MDDialog(text='Enter your username')
+                self.dialog.open()
 
+        def save_username(self):
+            self.parent.username = self.parent.ids.main_window.ids.input_username.text
+        # def add_chat(self):
+        # Добавление чата (создается новая кнопка в поле для перехода на новый Layout
 
-class Chat(Screen):
-    list_messages = list()
+    class Chat(MDScreen):
+        keyboard = None
 
-    def on_pre_enter(self, *args):
-        messages = db.get_messages(db, 1)
-        for message in messages:
-            item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
+        def on_pre_enter(self, *args):
+            messages = db.get_messages(db, 1)
+            for message in messages:
+                item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
+                self.parent.ids.chat.ids.messages.add_widget(item_mes)
+
+        def go_back(self):
+            self.parent.transition.direction = 'right'
+            self.parent.current = 'MainWindow'
+
+        def send_message(self):
+            text_input = self.parent.ids.chat.ids.input.text
+            if text_input == '':
+                return
+            item_mes = ThreeLineListItem(text=text_input, secondary_text=self.parent.username,
+                                         tertiary_text=str(datetime.now())[:-7])
             self.parent.ids.chat.ids.messages.add_widget(item_mes)
-            self.list_messages.append(item_mes)
+            self.parent.ids.chat.ids.input.text = ''
 
-    def go_back(self):
-        self.parent.current = 'MainWindow'
+        def ui_keyboard(self):
+            if not self.keyboard:
+                self.keyboard = Widget()
+                self.parent.ids.chat.ids.box_chat.add_widget(self.keyboard)
+            else:
+                self.parent.ids.chat.ids.box_chat.remove_widget(self.keyboard)
+                self.keyboard = None
 
-    def send_message(self):
-        text_input = self.parent.ids.chat.ids.input.text
-        if text_input == '':
-            return
-        item_mes = ThreeLineListItem(text=text_input, secondary_text='Me', tertiary_text=str(datetime.now())[:-7])
-        self.parent.ids.chat.ids.messages.add_widget(item_mes)
-        self.list_messages.append(item_mes)
-        self.parent.ids.chat.ids.input.text = ''
-
-    def on_pre_leave(self, *args):
-        for i in range(len(self.list_messages)):
-            self.parent.ids.chat.ids.messages.remove_widget(self.list_messages[i])
-        self.list_messages = list()
+        def on_pre_leave(self, *args):
+            self.parent.ids.chat.ids.messages.clear_widgets()
 
 
 class ChatApp(MDApp):
+
     def build(self):
-        sm = ScreenManager()
-        sm.add_widget(MainWindow(name='MainWindow'))
-        sm.add_widget(Chat(name='Chat'))
+        sm = ScreenController()
         sm = Builder.load_string(kv_code)
         return sm
 
