@@ -1,6 +1,7 @@
 import sqlite3
 from string import Template
 
+
 # Это должен был быть статический класс, но здесь нельзя создавать статические поля, только методы:(
 class DBController:
     con = None
@@ -26,11 +27,19 @@ class DBController:
                             FROM message
                             WHERE chat_id = '''
 
-    query_insert_username = '''INSERT INTO options VALUES('username','Guest')'''
+    query_insert_message = '''INSERT INTO message(text_message, time, author, chat_id) 
+                                VALUES(?, ?, ?, ?)'''
 
-    query_select_username = '''SELECT value FROM options WHERE key='username' '''
+    query_insert_username = '''INSERT INTO options 
+                                VALUES('username','Guest')'''
 
-    query_update_username = Template('''UPDATE options SET value='$new_value' WHERE key='username' ''')
+    query_select_username = '''SELECT value 
+                                FROM options 
+                                WHERE key='username' '''
+
+    query_update_username = Template('''UPDATE options 
+                                        SET value='$new_value' 
+                                        WHERE key='username' ''')
 
     def __init__(self):
         try:
@@ -39,17 +48,15 @@ class DBController:
             self.cur.execute(self.table_chat)
             self.cur.execute(self.table_message)
             self.cur.execute(self.table_username)
-            self.init_username(self)
+            self.init_username()
             self.con.commit()
         except ConnectionError:
             return
 
-    @staticmethod
     def init_username(self):
         if not self.cur.execute(self.query_select_username).fetchall():
             self.cur.execute(self.query_insert_username)
 
-    @staticmethod
     def get_chats(self):
         try:
             self.cur.execute(self.query_select_chats)
@@ -60,7 +67,6 @@ class DBController:
         except BaseException:
             return list()
 
-    @staticmethod
     def get_messages(self, id):
         try:
             self.cur.execute(self.query_select_messages + str(id))
@@ -71,10 +77,17 @@ class DBController:
         except BaseException:
             return list()
 
-    def set_message(self):
-        pass
+    def set_message(self, text_message, time, chat_id):
+        try:
+            author = self.get_username()
+            self.cur.execute(self.query_insert_message, (text_message, time, author, chat_id))
+            self.con.commit()
+            self.cur.close()
+            self.cur = self.con.cursor()
+            return
+        except BaseException:
+            return
 
-    @staticmethod
     def get_username(self):
         try:
             self.cur.execute(self.query_select_username)
@@ -85,7 +98,6 @@ class DBController:
         except BaseException:
             return str()
 
-    @staticmethod
     def set_username(self, new_username):
         try:
             self.cur.execute(self.query_update_username.substitute(new_value=new_username))
@@ -96,7 +108,6 @@ class DBController:
         except BaseException:
             return
 
-    @staticmethod
     def close_con(self):
         self.cur.close()
         self.con.close()

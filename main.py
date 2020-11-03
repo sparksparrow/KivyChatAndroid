@@ -50,7 +50,6 @@ ScreenManager:
                 multiline: False
                 mode: 'line'
                 max_text_length: 30
-                hint_text: ' Username            '
                 icon_right: 'account'
                 mode: 'rectangle'
                 on_focus: root.save_username()
@@ -105,7 +104,7 @@ class ScreenController(ScreenManager):
         dialog = None
 
         def on_kv_post(self, base_widget):
-            self.parent.ids.main_window.ids.input_username.text = db.get_username(db)
+            self.parent.ids.main_window.ids.input_username.text = db.get_username()
 
         def go_to_chat(self):
             if self.parent.ids.main_window.ids.input_username.text != '':
@@ -117,7 +116,7 @@ class ScreenController(ScreenManager):
                 self.dialog.open()
 
         def save_username(self):
-            db.set_username(db, self.parent.ids.main_window.ids.input_username.text)
+            db.set_username(self.parent.ids.main_window.ids.input_username.text)
         # def add_chat(self):
         # Добавление чата (создается новая кнопка в поле для перехода на новый Layout
 
@@ -125,7 +124,7 @@ class ScreenController(ScreenManager):
         keyboard = None
 
         def on_pre_enter(self, *args):
-            messages = db.get_messages(db, 1)
+            messages = db.get_messages(1)
             for message in messages:
                 item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
                 self.parent.ids.chat.ids.messages.add_widget(item_mes)
@@ -136,10 +135,12 @@ class ScreenController(ScreenManager):
 
         def send_message(self):
             text_input = self.parent.ids.chat.ids.input.text
+            date_sent = str(datetime.now())[:-7]
             if text_input == '':
                 return
-            item_mes = ThreeLineListItem(text=text_input, secondary_text=db.get_username(db),
-                                         tertiary_text=str(datetime.now())[:-7])
+            db.set_message(text_input, date_sent, 1)
+            item_mes = ThreeLineListItem(text=text_input, secondary_text=db.get_username(),
+                                         tertiary_text=date_sent)
             self.parent.ids.chat.ids.messages.add_widget(item_mes)
             self.parent.ids.chat.ids.input.text = ''
 
@@ -163,14 +164,14 @@ class ChatApp(MDApp):
         return sm
 
     def on_start(self):
-        chats = db.get_chats(db)
+        chats = db.get_chats()
         for chat in chats:
-            btn = MDButton(text=chat[1], on_press=lambda x: self.root.ids.main_window.go_to_chat(),
+            btn = MDButton(text=chat[1], font_size=50, on_press=lambda x: self.root.ids.main_window.go_to_chat(),
                            size_hint_y=None, height=160)
             self.root.ids.main_window.ids.chats.add_widget(btn)
 
     def on_stop(self):
-        db.close_con(db)
+        db.close_con()
 
 
 if __name__ == '__main__':
