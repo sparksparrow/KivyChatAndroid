@@ -36,7 +36,7 @@ version = 0.1
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy,websockets
-requirements = python3,kivy==1.11.1,kivymd==0.104.1,websockets
+requirements = python3,kivy==1.11.1,kivymd==0.104.1,websockets,sqlite3
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes

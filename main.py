@@ -50,7 +50,7 @@ ScreenManager:
                 multiline: False
                 mode: 'line'
                 max_text_length: 30
-                hint_text: 'Username     '
+                hint_text: ' Username            '
                 icon_right: 'account'
                 mode: 'rectangle'
                 on_focus: root.save_username()
@@ -101,10 +101,11 @@ db = DBController()
 
 
 class ScreenController(ScreenManager):
-    username = str()  # Пока поле не было использовано, оно не определено
-
     class MainWindow(MDScreen):
         dialog = None
+
+        def on_kv_post(self, base_widget):
+            self.parent.ids.main_window.ids.input_username.text = db.get_username(db)
 
         def go_to_chat(self):
             if self.parent.ids.main_window.ids.input_username.text != '':
@@ -116,7 +117,7 @@ class ScreenController(ScreenManager):
                 self.dialog.open()
 
         def save_username(self):
-            self.parent.username = self.parent.ids.main_window.ids.input_username.text
+            db.set_username(db, self.parent.ids.main_window.ids.input_username.text)
         # def add_chat(self):
         # Добавление чата (создается новая кнопка в поле для перехода на новый Layout
 
@@ -137,7 +138,7 @@ class ScreenController(ScreenManager):
             text_input = self.parent.ids.chat.ids.input.text
             if text_input == '':
                 return
-            item_mes = ThreeLineListItem(text=text_input, secondary_text=self.parent.username,
+            item_mes = ThreeLineListItem(text=text_input, secondary_text=db.get_username(db),
                                          tertiary_text=str(datetime.now())[:-7])
             self.parent.ids.chat.ids.messages.add_widget(item_mes)
             self.parent.ids.chat.ids.input.text = ''
