@@ -15,7 +15,6 @@ import websockets
 
 kv_code = '''
 ScreenManager:
-    id: scrn_mngr
     MainWindow:
         id: main_window
     Chat:    
@@ -39,7 +38,7 @@ ScreenManager:
                 cols: 1
                 spacing: 8
                 padding: 15
-                size_hint_y: None
+                size_hint: 1, None
     MDNavigationDrawer:
         id: nav_drawer
         BoxLayout:
@@ -71,7 +70,7 @@ ScreenManager:
                 padding: [0, 15, 15, 15] 
         BoxLayout:
             padding: 10, 0, 5, 0
-            size_hint: 1, 0.2
+            size_hint: 1, 0.3
             orientation: 'horizontal'
             cols: 2
             rows: 1    
@@ -89,7 +88,7 @@ ScreenManager:
                 on_text_validate: root.send_message()
                 on_focus: root.ui_keyboard()
             Widget:   
-                size_hint: 0.02, 1 
+                size_hint: 0.01, 1 
             MDIconButton:
                 icon: 'arrow-up-circle'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
@@ -97,6 +96,8 @@ ScreenManager:
 '''
 
 db = DBController()
+id_instance_button = dict()
+id_button = int()
 
 
 class ScreenController(ScreenManager):
@@ -106,8 +107,13 @@ class ScreenController(ScreenManager):
         def on_kv_post(self, base_widget):
             self.parent.ids.main_window.ids.input_username.text = db.get_username()
 
-        def go_to_chat(self):
+        def go_to_chat(self, instance):
             if self.parent.ids.main_window.ids.input_username.text != '':
+                for key, value in id_instance_button.items():
+                    if instance is value:
+                        global id_button
+                        id_button = key
+                print(id_button)
                 self.parent.transition.direction = 'left'
                 self.parent.current = 'Chat'
             else:
@@ -124,7 +130,8 @@ class ScreenController(ScreenManager):
         keyboard = None
 
         def on_pre_enter(self, *args):
-            messages = db.get_messages(1)
+            global id_button
+            messages = db.get_messages(id_button)
             for message in messages:
                 item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
                 self.parent.ids.chat.ids.messages.add_widget(item_mes)
@@ -146,7 +153,7 @@ class ScreenController(ScreenManager):
 
         def ui_keyboard(self):
             if not self.keyboard:
-                self.keyboard = Widget()
+                self.keyboard = Widget(size_hint=(None, 1.3))
                 self.parent.ids.chat.ids.box_chat.add_widget(self.keyboard)
             else:
                 self.parent.ids.chat.ids.box_chat.remove_widget(self.keyboard)
@@ -156,18 +163,21 @@ class ScreenController(ScreenManager):
             self.parent.ids.chat.ids.messages.clear_widgets()
 
 
+sm = ScreenController()
+
+
 class ChatApp(MDApp):
 
     def build(self):
-        sm = ScreenController()
-        sm = Builder.load_string(kv_code)
-        return sm
+        screen = Builder.load_string(kv_code)
+        return screen
 
     def on_start(self):
         chats = db.get_chats()
         for chat in chats:
-            btn = MDButton(text=chat[1], font_size=50, on_press=lambda x: self.root.ids.main_window.go_to_chat(),
+            btn = MDButton(text=chat[1], font_size=50, on_press=lambda x: self.root.ids.main_window.go_to_chat(x),
                            size_hint_y=None, height=160)
+            id_instance_button[chat[0]] = btn
             self.root.ids.main_window.ids.chats.add_widget(btn)
 
     def on_stop(self):
