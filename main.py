@@ -96,8 +96,8 @@ ScreenManager:
 '''
 
 db = DBController()
-id_instance_button = dict()
-id_button = int()
+_id_instance_button = dict()
+_id_button = [0]
 
 
 class ScreenController(ScreenManager):
@@ -107,13 +107,11 @@ class ScreenController(ScreenManager):
         def on_kv_post(self, base_widget):
             self.parent.ids.main_window.ids.input_username.text = db.get_username()
 
-        def go_to_chat(self, instance):
+        def go_to_chat(self, instance, ref_id_button):
             if self.parent.ids.main_window.ids.input_username.text != '':
-                for key, value in id_instance_button.items():
+                for key, value in _id_instance_button.items():
                     if instance is value:
-                        global id_button
-                        id_button = key
-                print(id_button)
+                        ref_id_button[0] = key
                 self.parent.transition.direction = 'left'
                 self.parent.current = 'Chat'
             else:
@@ -130,8 +128,7 @@ class ScreenController(ScreenManager):
         keyboard = None
 
         def on_pre_enter(self, *args):
-            global id_button
-            messages = db.get_messages(id_button)
+            messages = db.get_messages(_id_button[0])
             for message in messages:
                 item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
                 self.parent.ids.chat.ids.messages.add_widget(item_mes)
@@ -145,7 +142,7 @@ class ScreenController(ScreenManager):
             date_sent = str(datetime.now())[:-7]
             if text_input == '':
                 return
-            db.set_message(text_input, date_sent, 1)
+            db.set_message(text_input, date_sent, _id_button[0])
             item_mes = ThreeLineListItem(text=text_input, secondary_text=db.get_username(),
                                          tertiary_text=date_sent)
             self.parent.ids.chat.ids.messages.add_widget(item_mes)
@@ -163,7 +160,7 @@ class ScreenController(ScreenManager):
             self.parent.ids.chat.ids.messages.clear_widgets()
 
 
-sm = ScreenController()
+screen_manager = ScreenController()
 
 
 class ChatApp(MDApp):
@@ -175,9 +172,9 @@ class ChatApp(MDApp):
     def on_start(self):
         chats = db.get_chats()
         for chat in chats:
-            btn = MDButton(text=chat[1], font_size=50, on_press=lambda x: self.root.ids.main_window.go_to_chat(x),
+            btn = MDButton(text=chat[1], font_size=50, on_press=lambda x: self.root.ids.main_window.go_to_chat(instance=x, ref_id_button=_id_button),
                            size_hint_y=None, height=160)
-            id_instance_button[chat[0]] = btn
+            _id_instance_button[chat[0]] = btn
             self.root.ids.main_window.ids.chats.add_widget(btn)
 
     def on_stop(self):
