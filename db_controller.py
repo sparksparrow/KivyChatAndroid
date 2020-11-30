@@ -49,6 +49,10 @@ class DBController:
                                         SET value='$new_value' 
                                         WHERE key='username' ''')
 
+    query_select_chat_name = '''SELECT chat_name 
+                                FROM chat 
+                                WHERE id_from_server= '''
+
     def __init__(self):
         try:
             self.create_db()
@@ -138,9 +142,19 @@ class DBController:
         except BaseException:
             return
 
-    def close_con(self):
-        self.cur.close()
-        self.con.close()
+    def get_chat_name(self, chat_id):
+        try:
+            self.open_con()
+            self.cur.execute(self.query_select_chat_name + str(chat_id[0]))
+            chat_name = self.cur.fetchone()[0]
+            self.close_con()
+            return chat_name
+        except BaseException:
+            return str()
 
     def get_path_db(self):
         return self.path_db
+
+    def close_con(self):
+        self.cur.close()
+        self.con.close()

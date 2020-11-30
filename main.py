@@ -59,7 +59,7 @@ ScreenManager:
         id: box_chat
         orientation: 'vertical'
         MDToolbar:
-            title: 'chat-name'
+            id: toolbar_name
             left_action_items: [['arrow-left', lambda x: app.root.ids.chat.go_back()]]
         ScrollView:      
             do_scroll_x: False
@@ -131,6 +131,7 @@ class ScreenController(ScreenManager):
         keyboard = None
 
         def on_pre_enter(self, *args):
+            self.parent.ids.chat.ids.toolbar_name.title = db.get_chat_name(_id_button)
             ws.set_id_button(_id_button)
             Window.bind(on_key_down=self.key_action)
             messages = db.get_messages(_id_button[0])
