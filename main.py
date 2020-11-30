@@ -131,6 +131,7 @@ class ScreenController(ScreenManager):
         keyboard = None
 
         def on_pre_enter(self, *args):
+            ws.set_id_button(_id_button)
             Window.bind(on_key_down=self.key_action)
             messages = db.get_messages(_id_button[0])
             for message in messages:
@@ -161,9 +162,11 @@ class ScreenController(ScreenManager):
         def key_action(self, *args):
             if args[1] == 27 and self.parent.current == 'Chat':
                 self.go_back()
+                return True
             elif args[1] == 27 and self.parent.current == 'MainWindow':
                 MDApp.get_running_app().stop()
-            return True
+                return True
+            return
 
         def on_pre_leave(self, *args):
             self.parent.ids.chat.ids.messages.clear_widgets()

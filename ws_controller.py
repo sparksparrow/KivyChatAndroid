@@ -18,11 +18,10 @@ class WSConstroller:
 
     def __init__(self, db):
         self.connector = ClientConnector(self.URL, self.PORT,
-                                         {'/messages/create': lambda connection, data: self.get_message_from_server(json.dumps(data))})
+                                         {'/messages/create': lambda connection, data: self.get_message_from_server(data)})
         self.db = db
 
     def synchronization_messages(self, db, data):
-        print(data)
         for message in data:
             db.set_message(message[0], message[1], message[3], author=message[2])
 
@@ -85,11 +84,14 @@ class WSConstroller:
         object_main_window.parent.ids.main_window.ids.chats.add_widget(btn)
 
     def get_message_from_server(self, response):
-        self.db.set_message(text_message=response[0], time=response[1], chat_id=response[3], author=response[2])
-        if self.object_chats.parent.current == 'Chat' and self._id_button == response[4]:
-            item_mes = ThreeLineListItem(text=response[0], secondary_text=response[3],
-                                         tertiary_text=response[1])
+        self.db.set_message(text_message=response['text_message'], time=response['time'], chat_id=response['chat_id'], author=response['author'])
+        if self.object_chats.parent.current == 'Chat' and self._id_button[0] == response['chat_id']:
+            item_mes = ThreeLineListItem(text=response['text_message'], secondary_text=response['author'],
+                                         tertiary_text=response['time'])
             self.object_chats.parent.ids.chat.ids.messages.add_widget(item_mes)
+
+    def set_id_button(self, _id_button):
+        self._id_button = _id_button
 
     def set_object_chats(self, object_chats, _id_button):
         self.object_chats = object_chats
