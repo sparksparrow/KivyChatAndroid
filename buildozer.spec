@@ -35,8 +35,8 @@ version = 0.1
 # version.filename = %(source.dir)s/main.py
 
 # (list) Application requirements
-# comma separated e.g. requirements = sqlite3,kivy,websockets
-requirements = python3,kivy==1.11.1,kivymd==0.104.1,websockets,sqlite3
+# comma separated e.g. requirements = sqlite3,kivy,websocket-client
+requirements = python3,kivy==1.11.1,kivymd==0.104.1,sqlite3,websocket-client
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -88,7 +88,7 @@ fullscreen = 0
 #android.presplash_lottie = "path/to/lottie/file.json"
 
 # (list) Permissions
-#android.permissions = INTERNET
+android.permissions = INTERNET
 
 # (list) features (adds uses-feature -tags to manifest)
 #android.features = android.hardware.usb.host

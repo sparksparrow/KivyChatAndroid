@@ -1,4 +1,5 @@
 from kivy.app import Builder
+from kivymd.theming import ThemeManager
 from kivymd.uix.screen import MDScreen
 from kivy.uix.screenmanager import ScreenManager
 from kivymd.app import MDApp
@@ -6,12 +7,10 @@ from kivymd.uix.list import ThreeLineListItem
 from kivymd.uix.button import Button as MDButton
 from datetime import datetime
 from kivy.uix.widget import Widget
-from kivymd.uix.button import MDFlatButton
 from kivymd.uix.dialog import MDDialog
-from kivy.properties import ObjectProperty
-from DB import DBController
-import asyncio
-import websockets
+from db_controller import DBController
+from ws_controller import WSConstroller
+from kivy.core.window import Window
 
 kv_code = '''
 ScreenManager:
@@ -98,6 +97,8 @@ ScreenManager:
 db = DBController()
 _id_instance_button = dict()
 _id_button = [0]
+ws = WSConstroller(db=db)
+theme_cls = ThemeManager()
 
 
 class ScreenController(ScreenManager):
@@ -105,12 +106,14 @@ class ScreenController(ScreenManager):
         dialog = None
 
         def on_kv_post(self, base_widget):
+            ws.synch(self, [_id_button, theme_cls])
             self.parent.ids.main_window.ids.input_username.text = db.get_username()
 
         def go_to_chat(self, instance, ref_id_button):
+            _id_instance_button = ws.get_id_instance_buttons()
             if self.parent.ids.main_window.ids.input_username.text != '':
                 for key, value in _id_instance_button.items():
-                    if instance is value:
+                    if instance == value:
                         ref_id_button[0] = key
                 self.parent.transition.direction = 'left'
                 self.parent.current = 'Chat'
@@ -128,6 +131,7 @@ class ScreenController(ScreenManager):
         keyboard = None
 
         def on_pre_enter(self, *args):
+            Window.bind(on_key_down=self.key_action)
             messages = db.get_messages(_id_button[0])
             for message in messages:
                 item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
@@ -140,12 +144,10 @@ class ScreenController(ScreenManager):
         def send_message(self):
             text_input = self.parent.ids.chat.ids.input.text
             date_sent = str(datetime.now())[:-7]
+            username = db.get_username()
             if text_input == '':
                 return
-            db.set_message(text_input, date_sent, _id_button[0])
-            item_mes = ThreeLineListItem(text=text_input, secondary_text=db.get_username(),
-                                         tertiary_text=date_sent)
-            self.parent.ids.chat.ids.messages.add_widget(item_mes)
+            ws.send_message(text_input, date_sent, username, _id_button[0], self)
             self.parent.ids.chat.ids.input.text = ''
 
         def ui_keyboard(self):
@@ -155,6 +157,13 @@ class ScreenController(ScreenManager):
             else:
                 self.parent.ids.chat.ids.box_chat.remove_widget(self.keyboard)
                 self.keyboard = None
+
+        def key_action(self, *args):
+            if args[1] == 27 and self.parent.current == 'Chat':
+                self.go_back()
+            elif args[1] == 27 and self.parent.current == 'MainWindow':
+                MDApp.get_running_app().stop()
+            return True
 
         def on_pre_leave(self, *args):
             self.parent.ids.chat.ids.messages.clear_widgets()
@@ -170,15 +179,17 @@ class ChatApp(MDApp):
         return screen
 
     def on_start(self):
+        ws.set_object_chats(self.root.ids.chat, _id_button)
+        # Window.softinput_mode = 'below_target'
         chats = db.get_chats()
         for chat in chats:
-            btn = MDButton(text=chat[1], font_size=50, on_press=lambda x: self.root.ids.main_window.go_to_chat(instance=x, ref_id_button=_id_button),
-                           size_hint_y=None, height=160)
+            btn = MDButton(text=chat[1], font_size=50, bold=True,
+                           on_press=lambda x: self.root.ids.main_window.go_to_chat(instance=x,
+                                                                                   ref_id_button=_id_button),
+                           size_hint_y=None, height=theme_cls.standard_increment * 1.5,
+                           background_color=(0, 0.749, 1, 0.5))
             _id_instance_button[chat[0]] = btn
             self.root.ids.main_window.ids.chats.add_widget(btn)
-
-    def on_stop(self):
-        db.close_con()
 
 
 if __name__ == '__main__':
