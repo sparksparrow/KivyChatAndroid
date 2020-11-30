@@ -12,6 +12,8 @@ from db_controller import DBController
 from ws_controller import WSConstroller
 from kivy.core.window import Window
 
+# Window.size = (540, 960)
+
 kv_code = '''
 ScreenManager:
     MainWindow:
@@ -69,7 +71,7 @@ ScreenManager:
                 padding: [0, 15, 15, 15] 
         BoxLayout:
             padding: 10, 0, 5, 0
-            size_hint: 1, 0.3
+            size_hint: 1, 0.2
             orientation: 'horizontal'
             cols: 2
             rows: 1    
@@ -85,7 +87,6 @@ ScreenManager:
                 height: '50dp'
                 pos_hint: {'center_x': 0.5, 'center_y': 0.5}
                 on_text_validate: root.send_message()
-                on_focus: root.ui_keyboard()
             Widget:   
                 size_hint: 0.01, 1 
             MDIconButton:
@@ -152,14 +153,6 @@ class ScreenController(ScreenManager):
             ws.send_message(text_input, date_sent, username, _id_button[0], self)
             self.parent.ids.chat.ids.input.text = ''
 
-        def ui_keyboard(self):
-            if not self.keyboard:
-                self.keyboard = Widget(size_hint=(None, 1.3))
-                self.parent.ids.chat.ids.box_chat.add_widget(self.keyboard)
-            else:
-                self.parent.ids.chat.ids.box_chat.remove_widget(self.keyboard)
-                self.keyboard = None
-
         def key_action(self, *args):
             if args[1] == 27 and self.parent.current == 'Chat':
                 self.go_back()
@@ -184,7 +177,7 @@ class ChatApp(MDApp):
 
     def on_start(self):
         ws.set_object_chats(self.root.ids.chat, _id_button)
-        # Window.softinput_mode = 'below_target'
+        Window.softinput_mode = 'below_target'
         chats = db.get_chats()
         for chat in chats:
             btn = MDButton(text=chat[1], font_size=50, bold=True,
