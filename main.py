@@ -6,11 +6,15 @@ from kivymd.app import MDApp
 from kivymd.uix.list import ThreeLineListItem
 from kivymd.uix.button import Button as MDButton
 from datetime import datetime
-from kivy.uix.widget import Widget
 from kivymd.uix.dialog import MDDialog
 from db_controller import DBController
 from ws_controller import WSConstroller
 from kivy.core.window import Window
+
+try:
+    import thread
+except ImportError:
+    import _thread as thread
 
 # Window.size = (540, 960)
 
@@ -107,13 +111,15 @@ class ScreenController(ScreenManager):
         dialog = None
 
         def on_kv_post(self, base_widget):
-            ws.synch(self, [_id_button, theme_cls])
+            thread.start_new_thread(lambda: ws.synch_all(self, [_id_button, theme_cls]), ())
             self.parent.ids.main_window.ids.input_username.text = db.get_username()
 
         def go_to_chat(self, instance, ref_id_button):
-            _id_instance_button = ws.get_id_instance_buttons()
+            local_id_instance_button = _id_instance_button
+            if ws.get_id_instance_buttons():
+                local_id_instance_button = ws.get_id_instance_buttons()
             if self.parent.ids.main_window.ids.input_username.text != '':
-                for key, value in _id_instance_button.items():
+                for key, value in local_id_instance_button.items():
                     if instance == value:
                         ref_id_button[0] = key
                 self.parent.transition.direction = 'left'
@@ -132,13 +138,14 @@ class ScreenController(ScreenManager):
         keyboard = None
 
         def on_pre_enter(self, *args):
-            self.parent.ids.chat.ids.toolbar_name.title = db.get_chat_name(_id_button)
+            self.parent.ids.chat.ids.toolbar_name.title = db.get_chat_name(_id_button[0])
             ws.set_id_button(_id_button)
             Window.bind(on_key_down=self.key_action)
             messages = db.get_messages(_id_button[0])
             for message in messages:
                 item_mes = ThreeLineListItem(text=message[0], secondary_text=message[2], tertiary_text=message[1])
                 self.parent.ids.chat.ids.messages.add_widget(item_mes)
+            ws.synch_messages()
 
         def go_back(self):
             self.parent.transition.direction = 'right'

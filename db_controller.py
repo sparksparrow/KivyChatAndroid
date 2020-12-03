@@ -4,7 +4,6 @@ from string import Template
 
 # Это должен был быть статический класс, но здесь нельзя создавать статические поля, только методы:(
 class DBController:
-
     con = None
     cur = None
     path_db = './Chats_base.db'
@@ -34,6 +33,9 @@ class DBController:
 
     query_insert_message = '''INSERT INTO message(text_message, time, author, chat_id) 
                                 VALUES(?, ?, ?, ?)'''
+
+    query_delete_messages = '''DELETE FROM message 
+                                WHERE chat_id = '''
 
     query_insert_username = '''INSERT INTO options 
                                     VALUES(?, ?)'''
@@ -102,10 +104,10 @@ class DBController:
         except BaseException:
             return
 
-    def get_messages(self, id):
+    def get_messages(self, chat_id):
         try:
             self.open_con()
-            self.cur.execute(self.query_select_messages + str(id))
+            self.cur.execute(self.query_select_messages + str(chat_id))
             messages = self.cur.fetchall()
             self.close_con()
             return messages
@@ -116,6 +118,16 @@ class DBController:
         try:
             self.open_con()
             self.cur.execute(self.query_insert_message, (text_message, time, author, chat_id))
+            self.con.commit()
+            self.close_con()
+            return
+        except BaseException:
+            return
+
+    def delete_messages(self, chat_id):
+        try:
+            self.open_con()
+            self.cur.execute(self.query_delete_messages + str(chat_id))
             self.con.commit()
             self.close_con()
             return
@@ -145,7 +157,7 @@ class DBController:
     def get_chat_name(self, chat_id):
         try:
             self.open_con()
-            self.cur.execute(self.query_select_chat_name + str(chat_id[0]))
+            self.cur.execute(self.query_select_chat_name + str(chat_id))
             chat_name = self.cur.fetchone()[0]
             self.close_con()
             return chat_name
