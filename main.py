@@ -17,7 +17,7 @@ except ImportError:
     import _thread as thread
 
 # Window.size = (540, 960)
-
+# kv-код, отрисовывающий ui приложения, что-то типо kivy front-end
 kv_code = '''
 ScreenManager:
     MainWindow:
@@ -99,22 +99,23 @@ ScreenManager:
                 on_press: root.send_message()               
 '''
 
-db = DBController()
-_id_instance_button = dict()
-_id_button = [0]
-ws = WSConstroller(db=db)
-theme_cls = ThemeManager()
+db = DBController() # создание класа для работы с бд
+_id_instance_button = dict() # хранит id кнопок и их объект
+_id_button = [0] # хранит id активной кнопки (по той что перешли в чат)
+ws = WSConstroller(db=db) # создает класс для работы в вебсокетами
+theme_cls = ThemeManager() # менеджер тем, хранит цвета и разметку
 
-
+# класс управления всеми экранами (Layout'ами)
 class ScreenController(ScreenManager):
+    # главный экран (Layout), экран чатов
     class MainWindow(MDScreen):
         dialog = None
 
-        def on_kv_post(self, base_widget):
+        def on_kv_post(self, base_widget): # выполняет в момент парсинга kv-кода (kivy front-end)
             thread.start_new_thread(lambda: ws.synch_all(self, [_id_button, theme_cls]), ())
             self.parent.ids.main_window.ids.input_username.text = db.get_username()
 
-        def go_to_chat(self, instance, ref_id_button):
+        def go_to_chat(self, instance, ref_id_button): # переход в окно диалога выбранного чата
             local_id_instance_button = _id_instance_button
             if ws.get_id_instance_buttons():
                 local_id_instance_button = ws.get_id_instance_buttons()
@@ -129,14 +130,14 @@ class ScreenController(ScreenManager):
                     self.dialog = MDDialog(text='Enter your username')
                 self.dialog.open()
 
-        def save_username(self):
+        def save_username(self): # записывает имя пользователя
             db.set_username(self.parent.ids.main_window.ids.input_username.text)
-        # def add_chat(self):
-        # Добавление чата (создается новая кнопка в поле для перехода на новый Layout
 
+    # экран диалога чата (Layout)
     class Chat(MDScreen):
         keyboard = None
 
+        # срабатывает в момент перехода на экран, рисует диалог
         def on_pre_enter(self, *args):
             self.parent.ids.chat.ids.toolbar_name.title = db.get_chat_name(_id_button[0])
             ws.set_id_button(_id_button)
@@ -147,10 +148,12 @@ class ScreenController(ScreenManager):
                 self.parent.ids.chat.ids.messages.add_widget(item_mes)
             ws.synch_messages()
 
+        # возвращается на главный экран
         def go_back(self):
             self.parent.transition.direction = 'right'
             self.parent.current = 'MainWindow'
 
+        # отправка сообщения
         def send_message(self):
             text_input = self.parent.ids.chat.ids.input.text
             date_sent = str(datetime.now())[:-7]
@@ -160,6 +163,7 @@ class ScreenController(ScreenManager):
             ws.send_message(text_input, date_sent, username, _id_button[0], self)
             self.parent.ids.chat.ids.input.text = ''
 
+        # обработка кнопки "BACK" на android
         def key_action(self, *args):
             if args[1] == 27 and self.parent.current == 'Chat':
                 self.go_back()
@@ -168,20 +172,22 @@ class ScreenController(ScreenManager):
                 MDApp.get_running_app().stop()
                 return True
             return
-
+        # срабатывает в момент выхода из диалога, очищает диалог
         def on_pre_leave(self, *args):
             self.parent.ids.chat.ids.messages.clear_widgets()
 
 
-screen_manager = ScreenController()
+screen_manager = ScreenController() # объявляет класс управления экранами
 
 
 class ChatApp(MDApp):
 
+    # строит приложение по kv-коду
     def build(self):
         screen = Builder.load_string(kv_code)
         return screen
 
+    # вызываеься после создания kv-кода, рисует ui, на момент пока нет интернета
     def on_start(self):
         ws.set_object_chats(self.root.ids.chat, _id_button)
         Window.softinput_mode = 'below_target'

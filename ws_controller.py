@@ -7,7 +7,7 @@ from client_connector import ClientConnector
 import json
 import os
 
-
+# здесь реализованны методы работы и обработки сообщений по вебсокету
 class WSConstroller:
     URL = 'musaev.online'
     PORT = 8765
@@ -19,17 +19,17 @@ class WSConstroller:
     connector = None
     db = None
 
-    def __init__(self, db):
+    def __init__(self, db): # инициирует подлючения, создает веб-сокет соединение, прослушивает роут на получение сообщения
         self.connector = ClientConnector(self.URL, self.PORT,
                                          {'/messages/create': lambda connection, data: self.get_message_from_server(
                                              data)}, db)
         self.db = db
 
-    def synchronization_messages(self, db, data):
+    def synchronization_messages(self, db, data): # синхронизирует сообщения ( вызывается в synchronization_chats)
         for message in data:
             db.set_message(message[0], message[1], message[3], author=message[2])
 
-    def synchronization_chats(self, db, data, connector, object_main_window, list_settings):
+    def synchronization_chats(self, db, data, connector, object_main_window, list_settings): # синхронизирует чаты ( вызывается в synch_all)
         correct_format_db = list()
         for tpl in db.get_chats():
             correct_format_db.append([tpl[2], tpl[1]])
@@ -49,6 +49,7 @@ class WSConstroller:
             for chat in db.get_chats():
                 self.synch_ui_add_buttons(object_main_window, chat, list_settings)
 
+    # Синхронизирует все чаты и сообщения (вызывается в начале запуска приложения) в случае отсутствия интернета ожидает в отдельном потоке
     def synch_all(self, object_main_window, list_settings):
         while not self.connector.network_status:
             time.sleep(1)
@@ -60,8 +61,7 @@ class WSConstroller:
                                                                                                 object_main_window,
                                                                                                 list_settings))
 
-
-    def synch_messages(self):
+    def synch_messages(self): # синхронизирует сообщения в момент входа в чат
         if self.connector.network_status:
             self.connector.send('/messages/get', message=json.dumps({'chat_id': self._id_button[0]}),
                                 callback=lambda connection, data_server: self.write_messages(json.loads(
@@ -72,7 +72,7 @@ class WSConstroller:
                 dialog = MDDialog(text='Connection fail!')
             dialog.open()
 
-    def write_messages(self, data):
+    def write_messages(self, data): # отображает сообщения в ui
         if not data:
             self.object_chats.parent.ids.chat.ids.messages.clear_widgets()
             return
@@ -91,7 +91,7 @@ class WSConstroller:
                                              tertiary_text=message[1])
                 self.object_chats.parent.ids.chat.ids.messages.add_widget(item_mes)
 
-    def insert_local_db(self, response, text_input, username, date_sent, chat_id, object_dialog):
+    def insert_local_db(self, response, text_input, username, date_sent, chat_id, object_dialog): # записывает сообдения в локальное бд
         if response['status'] == 'ok':
             self.db.set_message(text_message=text_input, time=date_sent, chat_id=chat_id, author=username)
             item_mes = ThreeLineListItem(text=text_input, secondary_text=username,
@@ -101,7 +101,7 @@ class WSConstroller:
             item_mes = OneLineListItem(text='Error! The message was not delivered!')
             object_dialog.parent.ids.chat.ids.messages.add_widget(item_mes)
 
-    def send_message(self, text_message, time, author, chat_id, object_dialog):
+    def send_message(self, text_message, time, author, chat_id, object_dialog): # отравляет сообщения на сервер
         if self.connector.network_status:
             self.connector.send('/messages/create', message=json.dumps(
                 {'text_message': text_message, 'time': time, 'author': author, 'chat_id': chat_id}),
@@ -112,10 +112,10 @@ class WSConstroller:
             item_mes = OneLineListItem(text='Error! No Internet connection!')
             object_dialog.parent.ids.chat.ids.messages.add_widget(item_mes)
 
-    def synch_ui_clear_buttons(self, object_main_window):
+    def synch_ui_clear_buttons(self, object_main_window): # удаляет в ui кнопки чата
         object_main_window.parent.ids.main_window.ids.chats.clear_widgets()
 
-    def synch_ui_add_buttons(self, object_main_window, chat, list_settings):
+    def synch_ui_add_buttons(self, object_main_window, chat, list_settings):  # добавляет в ui кнопки чата
         btn = MDButton(text=chat[1], font_size=50, bold=True,
                        on_press=lambda x: object_main_window.parent.ids.main_window.go_to_chat(instance=x,
                                                                                                ref_id_button=
@@ -125,7 +125,7 @@ class WSConstroller:
         self._id_instance_button[chat[0]] = btn
         object_main_window.parent.ids.main_window.ids.chats.add_widget(btn)
 
-    def get_message_from_server(self, response):
+    def get_message_from_server(self, response): # инициируется в момент получения сообщения, отображает новое сообщение в диалоге
         self.db.set_message(text_message=response['text_message'], time=response['time'], chat_id=response['chat_id'],
                             author=response['author'])
         if self.object_chats.parent.current == 'Chat' and self._id_button[0] == response['chat_id']:

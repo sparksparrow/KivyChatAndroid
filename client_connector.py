@@ -15,14 +15,14 @@ import time
 
 callbacks: Dict[int, Callable] = {}
 
-
+# здесь реализованны методы работы по вебсокету
 class ClientConnector:
     network_status = False
     db = None
     object_dialog = None
     last_time_connected = None
 
-    def __init__(self, url, port, routes, db):
+    def __init__(self, url, port, routes, db): # создает вебсокет подключение с нужными настройками
         self.url, self.port = url, port
         self.routes = routes
         self.db = db
@@ -34,7 +34,7 @@ class ClientConnector:
                                          )
         self.connect()
 
-    def on_connected(self, connection):
+    def on_connected(self, connection): # синхронизирует сообщения
         connection.send('/messages/get',
                         json.dumps({'chat_id': self._id_button[0], 'since': connection.last_time_connected}),
                         callback=lambda _, data: self.get_message_from_server(json.loads(data)))
@@ -42,12 +42,12 @@ class ClientConnector:
     def connect(self):
         thread.start_new_thread(self.ws.run_forever, ())
 
-    def on_open(self):
+    def on_open(self): # событие вызывается в момент создания вебсокет соединения (даже после потери интернета) и синхронизирует сообщения
         self.network_status = True
         self.on_connected(self)
         self.last_time_connected = None
 
-    def on_close(self):
+    def on_close(self): # вызывает в момент потери интернета
         self.network_status = False
         if not self.last_time_connected:
             self.last_time_connected = str(datetime.now()).split('.')[0]
@@ -55,7 +55,7 @@ class ClientConnector:
         self.ws.close()
         self.connect()
 
-    def on_message(self, message):
+    def on_message(self, message): # срабатывает в момент получения сообщения
         message: Dict = json.loads(message)
         server_id = message.get('server_id')
         client_id = message.get('client_id')
@@ -71,7 +71,7 @@ class ClientConnector:
             handler = callbacks.pop(client_id)
             handler(self, message.get('data'))
 
-    def send(self, url, message=None, callback=None):
+    def send(self, url, message=None, callback=None): # отправляет запрос по вебсокету
         res = {"url": url}
         if message:
             res["data"] = message
@@ -81,7 +81,7 @@ class ClientConnector:
             callbacks[client_id] = callback
         self.ws.send(json.dumps(res))
 
-    def get_message_from_server(self, response):
+    def get_message_from_server(self, response): # получает сообщение и записывает в Ui, выполняет в онлайн режиме пользователя
         for data in response:
             self.db.set_message(text_message=data[0], time=data[1], chat_id=data[3], author=data[2])
             if self.object_chats.parent.current == 'Chat' and self._id_button[0] == data[3]:
