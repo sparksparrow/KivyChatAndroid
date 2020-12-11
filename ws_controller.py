@@ -50,17 +50,16 @@ class WSConstroller:
                 self.synch_ui_add_buttons(object_main_window, chat, list_settings)
 
     def synch_all(self, object_main_window, list_settings):
-        if self.connector.network_status:
-            self.connector.send('/chats/get',
-                                callback=lambda connection, data_server: self.synchronization_chats(self.db,
-                                                                                                    json.loads(
-                                                                                                        data_server),
-                                                                                                    self.connector,
-                                                                                                    object_main_window,
-                                                                                                    list_settings))
-        else:
+        while not self.connector.network_status:
             time.sleep(1)
-            self.synch_all(object_main_window, list_settings)
+        self.connector.send('/chats/get',
+                            callback=lambda connection, data_server: self.synchronization_chats(self.db,
+                                                                                                json.loads(
+                                                                                                    data_server),
+                                                                                                self.connector,
+                                                                                                object_main_window,
+                                                                                                list_settings))
+
 
     def synch_messages(self):
         if self.connector.network_status:
