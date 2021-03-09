@@ -16,7 +16,7 @@ try:
 except ImportError:
     import _thread as thread
 
-# Window.size = (540, 960)
+Window.size = (540, 960)
 # kv-код, отрисовывающий ui приложения, что-то типо kivy front-end
 kv_code = '''
 ScreenManager:
